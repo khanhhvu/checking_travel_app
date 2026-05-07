@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "146171053745",
+    "project_id": "checking-travel-app-khanh",
+    "storage_bucket": "checking-travel-app-khanh.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:146171053745:android:7af1922fd5d9fad5274490",
+        "android_client_info": {
+          "package_name": "com.example.checking_travel_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCcUbcWkkhH-CsD99qeOvdtZdbx-IrsFdw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
