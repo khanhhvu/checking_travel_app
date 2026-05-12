@@ -110,6 +110,7 @@ class PostDetailScreen extends StatelessWidget {
                 if (isMyPost)
                   PopupMenuButton<String>(
                     icon: const Icon(Icons.more_vert, color: Colors.black),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     onSelected: (value) {
                       if (value == 'delete') {
                         _deletePost(context);
@@ -120,9 +121,9 @@ class PostDetailScreen extends StatelessWidget {
                         value: 'delete',
                         child: Row(
                           children: [
-                            Icon(Icons.delete_outline, color: Colors.red),
+                            Icon(Icons.delete_outline, color: Colors.black),
                             SizedBox(width: 10),
-                            Text('Xóa bài viết', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                            Text('Xóa bài viết', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
                           ],
                         ),
                       ),

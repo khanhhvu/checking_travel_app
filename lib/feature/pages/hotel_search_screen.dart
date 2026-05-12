@@ -3,7 +3,6 @@ import 'package:checking_travel_app/data/models/hotel_model.dart';
 import 'package:checking_travel_app/feature/pages/hotel_detail_screen.dart';
 import 'package:flutter/material.dart';
 
-
 class HotelSearchScreen extends StatefulWidget {
   const HotelSearchScreen({super.key});
 
@@ -16,10 +15,35 @@ class _HotelSearchScreenState extends State<HotelSearchScreen> {
   final HotelApiService _apiService = HotelApiService();
 
   bool _isLoading = false;
-  List<HotelModel> _hotels = [];
+  List<HotelModel> _hotels = []; // Danh sách hiển thị trên màn hình
+  List<HotelModel> _originalHotels = []; // Danh sách gốc
   String _errorMessage = '';
 
-  // Hàm gọi API khi người dùng bấm tìm kiếm
+  String _selectedSort = 'Gần nhất'; // Trạng thái bộ lọc mặc định
+
+  int _parsePrice(String priceString) {
+    String cleaned = priceString.replaceAll(RegExp(r'[^0-9]'), '');
+    if (cleaned.isEmpty) return 0;
+    return int.parse(cleaned);
+  }
+
+  // --- HÀM ÁP DỤNG BỘ LỌC ---
+  void _applySorting() {
+    if (_hotels.isEmpty) return;
+
+    setState(() {
+      if (_selectedSort == 'Giá: Thấp - Cao') {
+        _hotels.sort((a, b) => _parsePrice(a.price).compareTo(_parsePrice(b.price)));
+      } else if (_selectedSort == 'Giá: Cao - Thấp') {
+        _hotels.sort((a, b) => _parsePrice(b.price).compareTo(_parsePrice(a.price)));
+      } else {
+        // Nếu chọn "Gần nhất", reset lại bằng danh sách gốc
+        _hotels = List.from(_originalHotels);
+      }
+    });
+  }
+
+  // --- HÀM TÌM KIẾM ---
   void _searchHotels(String query) async {
     if (query.trim().isEmpty) return;
 
@@ -31,8 +55,14 @@ class _HotelSearchScreenState extends State<HotelSearchScreen> {
     try {
       final results = await _apiService.fetchCompleteHotels(query);
       setState(() {
-        _hotels = results;
-        if (_hotels.isEmpty) _errorMessage = 'Không tìm thấy khách sạn nào ở đây.';
+        _originalHotels = List.from(results); // Lưu bản gốc an toàn
+        _hotels = List.from(results); // Gán cho bản hiển thị
+
+        if (_hotels.isEmpty) {
+          _errorMessage = 'Không tìm thấy khách sạn nào ở đây.';
+        } else {
+          _applySorting(); // Áp dụng ngay bộ lọc đang chọn nếu có
+        }
       });
     } catch (e) {
       setState(() {
@@ -57,14 +87,14 @@ class _HotelSearchScreenState extends State<HotelSearchScreen> {
       ),
       body: Column(
         children: [
-          // THANH TÌM KIẾM
+          // --- THANH TÌM KIẾM ---
           Container(
             color: Colors.white,
             padding: const EdgeInsets.all(16.0),
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Nhập tên thành phố (Vd: Đà Nẵng)...',
+                hintText: 'Nhập tên thành phố ',
                 prefixIcon: const Icon(Icons.location_on, color: Colors.blue),
                 suffixIcon: IconButton(
                   icon: const Icon(Icons.search, color: Colors.black),
@@ -74,18 +104,51 @@ class _HotelSearchScreenState extends State<HotelSearchScreen> {
                 filled: true,
                 fillColor: Colors.grey[200],
               ),
-              onSubmitted: _searchHotels, // Tìm khi ấn Enter trên bàn phím
+              onSubmitted: _searchHotels,
             ),
           ),
 
-          // KHU VỰC HIỂN THỊ KẾT QUẢ
+          // --- THANH BỘ LỌC (Chỉ hiện khi đã có dữ liệu để nhìn cho gọn) ---
+          if (_hotels.isNotEmpty || _isLoading)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+              color: Colors.white,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Sắp xếp theo:', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black87)),
+                  DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: _selectedSort,
+                      icon: const Icon(Icons.sort, color: Colors.blue, size: 20),
+                      dropdownColor: Colors.white,
+                      style: const TextStyle(color: Colors.blue, fontSize: 15, fontWeight: FontWeight.w600),
+                      items: ['Gần nhất', 'Giá: Thấp - Cao', 'Giá: Cao - Thấp'].map((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(value),
+                        );
+                      }).toList(),
+                      onChanged: (newValue) {
+                        if (newValue != null) {
+                          _selectedSort = newValue;
+                          _applySorting();
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+          // --- KHU VỰC HIỂN THỊ KẾT QUẢ ---
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _errorMessage.isNotEmpty
                 ? Center(child: Text(_errorMessage, style: const TextStyle(color: Colors.red)))
                 : _hotels.isEmpty
-                ? const Center(child: Text('Hãy nhập thành phố bạn muốn đến 🌴', style: TextStyle(color: Colors.grey, fontSize: 16)))
+                ? const Center(child: Text('Hãy nhập thành phố bạn muốn đến ', style: TextStyle(color: Colors.grey, fontSize: 16)))
                 : ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: _hotels.length,
@@ -100,7 +163,7 @@ class _HotelSearchScreenState extends State<HotelSearchScreen> {
     );
   }
 
-  // GIAO DIỆN MỘT THẺ KHÁCH SẠN
+  // --- GIAO DIỆN MỘT THẺ KHÁCH SẠN ---
   Widget _buildHotelCard(HotelModel hotel) {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -119,7 +182,6 @@ class _HotelSearchScreenState extends State<HotelSearchScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Ảnh khách sạn
             Image.network(
               hotel.imageUrl,
               height: 180,

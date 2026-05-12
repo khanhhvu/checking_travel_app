@@ -3,6 +3,8 @@
         android:label="checking_travel_app"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <meta-data android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyC75oRLXyL3Eyie6bHw9R6dhb7mFT8OssM"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"

@@ -6,6 +6,8 @@ import 'package:checking_travel_app/feature/pages/find_guide_screen.dart';
 import 'package:checking_travel_app/feature/pages/guide_dashboard_screen.dart';
 import 'package:checking_travel_app/feature/pages/guide_registration_screen.dart';
 import 'package:checking_travel_app/feature/pages/hotel_search_screen.dart';
+import 'package:checking_travel_app/feature/pages/my_tours_screen.dart';
+import 'package:checking_travel_app/feature/pages/about_screen.dart';
 import 'package:checking_travel_app/feature/pages/my_bookings_screen.dart';
 import 'package:checking_travel_app/feature/pages/sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -16,7 +18,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
-  // --- HÀM ĐĂNG XUẤT ĐÃ ĐƯỢC CHUYỂN SANG ĐÂY ---
   void _handleLogout(BuildContext context) {
     showDialog(
       context: context,
@@ -88,7 +89,6 @@ class SettingsScreen extends StatelessWidget {
         children: [
           const SizedBox(height: 10),
           _buildListTile(context, Icons.person_outline, 'Tài khoản', () {
-            // TODO: Mở màn hình chỉnh sửa thông tin tài khoản
             _showComingSoon(context);
           }),
           const Divider(height: 1, indent: 60),
@@ -111,6 +111,11 @@ class SettingsScreen extends StatelessWidget {
                 context,
                 MaterialPageRoute(
                     builder: (context) => const FindGuideScreen()));
+          }),
+          _buildListTile(context, Icons.luggage_outlined, 'Lịch sử thuê HDV', () {
+            Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const MyToursScreen()));
           }),
           _buildListTile(context, Icons.badge_outlined, 'Kênh Hướng dẫn viên',
               () async {
@@ -167,7 +172,10 @@ class SettingsScreen extends StatelessWidget {
             _showComingSoon(context);
           }),
           _buildListTile(context, Icons.info_outline, 'Giới thiệu', () {
-            _showComingSoon(context);
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const AboutScreen()),
+            );
           }),
           const SizedBox(height: 20),
           const Divider(height: 1),
