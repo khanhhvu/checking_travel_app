@@ -13,12 +13,15 @@ class GuideDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final fullName = guideData['fullName'] ?? 'Chưa rõ tên';
     final province = guideData['province'] ?? 'Chưa rõ khu vực';
+    // --- LẤY SỐ ĐIỆN THOẠI TỪ FIREBASE ---
+    final phone = guideData['phone'] ?? 'Chưa cập nhật SĐT';
     final bio = guideData['bio'] ?? 'Chưa có thông tin giới thiệu.';
     final int price = guideData['pricePerDay'] ?? 500000;
     final double rating = (guideData['rating'] ?? 5.0).toDouble();
     final int bookings = guideData['bookings'] ?? 0;
     final avatarUrl = guideData['avatarUrl'] ?? '';
 
+    // Xử lý kỹ năng (Tags)
     List<dynamic> skills = guideData['skills'] ?? [];
     if (skills.isEmpty) {
       int len = fullName.length;
@@ -26,7 +29,7 @@ class GuideDetailScreen extends StatelessWidget {
     }
 
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: const Text('Hồ sơ Hướng dẫn viên', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.white, elevation: 1, iconTheme: const IconThemeData(color: Colors.black),
@@ -49,18 +52,24 @@ class GuideDetailScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 15),
                   Text(fullName, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 5),
+                  const SizedBox(height: 8),
+
+                  // --- HIỂN THỊ KHU VỰC & SỐ ĐIỆN THOẠI ---
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Icon(Icons.location_on, color: Colors.grey, size: 16),
                       const SizedBox(width: 4),
-                      Text(province, style: const TextStyle(color: Colors.grey, fontSize: 16)),
+                      Text(province, style: const TextStyle(color: Colors.grey, fontSize: 15)),
+                      const SizedBox(width: 20), // Khoảng cách giữa tỉnh và sđt
+                      const Icon(Icons.phone, color: Colors.green, size: 16),
+                      const SizedBox(width: 4),
+                      Text(phone, style: const TextStyle(color: Colors.black87, fontSize: 15, fontWeight: FontWeight.bold)),
                     ],
                   ),
                   const SizedBox(height: 20),
 
-                  // --- 2. CHỈ SỐ THỐNG KÊ ---
+                  // --- 2. CHỈ SỐ THỐNG KÊ (RATING & JOB) ---
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
@@ -113,87 +122,75 @@ class GuideDetailScreen extends StatelessWidget {
                   const Text('Đánh giá từ khách hàng', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 15),
 
-                  // StreamBuilder lấy dữ liệu Feedback
+                  // Lấy dữ liệu Feedback từ Firebase
                   StreamBuilder<QuerySnapshot>(
-                    // Lấy tất cả tour của HDV này (lọc bằng code Dart để tránh lỗi Index Firebase)
-                    stream: FirebaseFirestore.instance.collection('tour_requests').where('guideId', isEqualTo: guideId).snapshots(),
+                    stream: FirebaseFirestore.instance
+                        .collection('tour_requests')
+                        .where('guideId', isEqualTo: guideId)
+                        .where('status', isEqualTo: 'Completed') // Chỉ lấy tour đã hoàn thành
+                        .snapshots(),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
                       if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                        return const Center(child: Padding(padding: EdgeInsets.all(20.0), child: Text('Chưa có đánh giá nào.', style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic))));
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 20),
+                          child: Center(child: Text('Chưa có đánh giá nào.', style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic))),
+                        );
                       }
 
-                      // Lọc ra những tour đã hoàn thành (Completed) VÀ có viết review
-                      final reviews = snapshot.data!.docs.where((doc) {
-                        final data = doc.data() as Map<String, dynamic>;
-                        return data['status'] == 'Completed' && data['review'] != null && data['review'].toString().trim().isNotEmpty;
-                      }).toList();
-
-                      // Sắp xếp bài đánh giá mới nhất lên đầu
-                      reviews.sort((a, b) {
-                        Timestamp? timeA = (a.data() as Map<String, dynamic>)['createdAt'];
-                        Timestamp? timeB = (b.data() as Map<String, dynamic>)['createdAt'];
-                        if (timeA == null || timeB == null) return 0;
-                        return timeB.compareTo(timeA);
-                      });
-
-                      if (reviews.isEmpty) {
-                        return const Center(child: Padding(padding: EdgeInsets.all(20.0), child: Text('Chưa có đánh giá nào.', style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic))));
-                      }
-
-                      // Vẽ danh sách Feedback
+                      final reviews = snapshot.data!.docs;
                       return ListView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: reviews.length,
                         itemBuilder: (context, index) {
                           final reviewData = reviews[index].data() as Map<String, dynamic>;
+
+                          // LẤY TÊN KHÁCH, RATING VÀ NỘI DUNG FEEDBACK
                           final reviewerName = reviewData['touristName'] ?? 'Khách ẩn danh';
                           final int userRating = reviewData['rating'] ?? 5;
                           final String reviewText = reviewData['review'] ?? '';
                           final Timestamp? time = reviewData['createdAt'];
 
-                          // Lấy chữ cái đầu làm Avatar giả
-                          String initial = reviewerName.isNotEmpty ? reviewerName[0].toUpperCase() : 'U';
+                          if (reviewText.isEmpty) return const SizedBox();
 
+                          // GIAO DIỆN MỘT CHIẾC FEEDBACK
                           return Container(
                             margin: const EdgeInsets.only(bottom: 15),
                             padding: const EdgeInsets.all(15),
                             decoration: BoxDecoration(
                                 color: Colors.grey[50],
-                                borderRadius: BorderRadius.circular(15),
+                                borderRadius: BorderRadius.circular(12),
                                 border: Border.all(color: Colors.grey[200]!)
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    // Avatar khách hàng
-                                    CircleAvatar(
-                                      radius: 20, backgroundColor: Colors.grey[300],
-                                      child: Text(initial, style: const TextStyle(color: Colors.black54, fontWeight: FontWeight.bold)),
+                                    // Tên khách + Avatar nhỏ
+                                    Row(
+                                      children: [
+                                        CircleAvatar(
+                                          radius: 14,
+                                          backgroundColor: Colors.blue[100],
+                                          child: Text(reviewerName[0].toUpperCase(), style: const TextStyle(fontSize: 12, color: Colors.blue, fontWeight: FontWeight.bold)),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(reviewerName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                                      ],
                                     ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          // Tên khách hàng
-                                          Text(reviewerName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                                          const SizedBox(height: 4),
-                                          // Hiển thị số sao vàng
-                                          Row(children: List.generate(5, (i) => Icon(Icons.star, size: 14, color: i < userRating ? Colors.amber : Colors.grey[300]))),
-                                        ],
-                                      ),
-                                    ),
-                                    // Ngày đánh giá
-                                    Text(time != null ? DateFormat('dd/MM/yyyy').format(time.toDate()) : '', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                                    // Rating (Sao)
+                                    Row(children: List.generate(5, (i) => Icon(Icons.star, size: 16, color: i < userRating ? Colors.amber : Colors.grey[300]))),
                                   ],
                                 ),
                                 const SizedBox(height: 10),
                                 // Nội dung Feedback
-                                Text('"$reviewText"', style: const TextStyle(fontSize: 14, color: Colors.black87, fontStyle: FontStyle.italic, height: 1.4)),
+                                Text('"$reviewText"', style: const TextStyle(fontSize: 14, color: Colors.black87, fontStyle: FontStyle.italic)),
+                                const SizedBox(height: 8),
+                                // Thời gian đánh giá
+                                Text(time != null ? DateFormat('dd/MM/yyyy HH:mm').format(time.toDate()) : '', style: const TextStyle(fontSize: 12, color: Colors.grey)),
                               ],
                             ),
                           );
@@ -204,7 +201,6 @@ class GuideDetailScreen extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 30),
           ],
         ),
       ),
